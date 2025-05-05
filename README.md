@@ -1,54 +1,104 @@
-# Windmill Energy Simulation
+# Windmill Energy Control System
 
-This project simulates a windmill energy system with adjustable gears and PWM motor control. The system allows the user to cycle through 5 gears using a button, which adjusts the motor's speed and simulates energy levels through LED brightness.
+This project simulates a windmill energy control system, where the speed and direction of a motor are controlled by a button. The system uses an LCD to display the current gear and PWM value. The motor's speed is adjusted based on the gear selected, and LEDs indicate varying brightness levels corresponding to the motor's PWM value.
 
-## 🛠️ Hardware Components
-- Arduino Board (Uno, Nano, or compatible)
-- 1 x Push Button
-- 1 x Motor (DC motor or similar)
-- 5 x PWM-capable LEDs
-- 1 x LCD 16x2 with I2C (LiquidCrystal_I2C)
-- Jumper Wires
-- Breadboard
+## Components Used
 
-## 📦 Libraries Installed
-- `Wire.h` (for I2C communication)
-- `LiquidCrystal_I2C.h` (for controlling the LCD display)
+- **Arduino Board (e.g., Uno, Nano)**
+- **Motor Driver (H-Bridge, e.g., L298N)**
+- **DC Motor**
+- **5x LEDs (PWM capable)**
+- **1x Button**
+- **16x2 LCD with I2C**
+- **Wires and Breadboard**
 
-## ⚙️ Pin Configuration
-| Component          | Pin       |
-|--------------------|-----------|
-| Button             | Pin 2     |
-| Motor              | Pin 9     |
-| LED 1 (PWM)        | Pin 3     |
-| LED 2 (PWM)        | Pin 5     |
-| LED 3 (PWM)        | Pin 6     |
-| LED 4 (PWM)        | Pin 10    |
-| LED 5 (PWM)        | Pin 11    |
+## Circuit Diagram
 
-## 🧠 How It Works
-- The system starts with gear 1, and you can cycle through the gears (1-5) using the push button.
-- Each gear has a corresponding PWM value that controls the speed of the motor.
-- The 5 LEDs simulate energy levels, with brightness distributed gradually based on the current PWM value.
-- The LCD displays the current gear and PWM value in real-time.
+- **IN1** and **IN2** are connected to pins 9 and 10 on the Arduino, respectively. These control the motor's direction.
+- **Motor PWM** is controlled using PWM signals on the H-Bridge.
+- **Button** is connected to pin 2 to cycle through the gears (1–5).
+- **LEDs** are connected to pins 3, 5, 6, 10, and 11 for displaying PWM values.
+- **LCD** is connected via I2C at address `0x27`.
 
-## 🖥️ LCD Output
-- **Line 1:** Displays "Windmill Energy"
-- **Line 2:** Displays the current gear and the associated PWM value.
+## Functionality
 
-## 💡 LED Behavior
-- Each of the 5 LEDs corresponds to a portion of the PWM range and gradually increases brightness as the gear increases.
+- The motor's speed is controlled by the **gear** (1–5) selected via the button.
+- The motor direction alternates between forward and reverse based on the gear (odd gears reverse, even gears forward).
+- The motor's speed is controlled using PWM values that correspond to the gear.
+- The system displays the current gear and PWM value on an LCD screen.
+- The brightness of the LEDs gradually increases based on the PWM value.
 
-## 📋 Setup Instructions
-1. Connect the hardware components based on the pin configuration above.
-2. Upload the Arduino sketch to your Arduino board.
-3. Use the push button to cycle through gears and adjust the motor's PWM speed.
-4. Observe the gear and PWM values displayed on the LCD.
-5. Watch the LEDs gradually increase their brightness to simulate energy levels.
+## Code
 
-## 📝 License
-This project is open-source and free to use under the MIT License.
+```cpp
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
----
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-Made with ❤️ by Javier Siliacay | USTP 🇵🇭
+const int buttonPin = 2;
+const int IN1 = 9; // Motor direction pin 1
+const int IN2 = 10; // Motor direction pin 2
+
+// PWM LED pins
+const int ledPins[5] = {3, 5, 6, 10, 11}; // Use PWM-capable pins only
+
+int gear = 0;
+bool lastButtonState = HIGH;
+
+void setup() {
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+
+  for (int i = 0; i < 5; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Windmill Energy");
+}
+
+void loop() {
+  bool currentButtonState = digitalRead(buttonPin);
+
+  if (lastButtonState == HIGH && currentButtonState == LOW) {
+    gear++;
+    if (gear > 5) gear = 0;
+
+    int pwmValue = gear * 51;
+
+    // Control motor direction and speed
+    if (gear % 2 == 0) { // Forward direction for even gears
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+    } else { // Reverse direction for odd gears
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+    }
+
+    // Set motor speed using PWM
+    analogWrite(IN1, pwmValue);
+    analogWrite(IN2, pwmValue);
+
+    lcd.setCursor(0, 1);
+    lcd.print("Gear: ");
+    lcd.print(gear + 1);
+    lcd.print(" PWM: ");
+    lcd.print(pwmValue);
+    lcd.print("   ");
+
+    // Distribute brightness across 5 LEDs
+    for (int i = 0; i < 5; i++) {
+      int brightness = map(pwmValue, 0, 255, 0, (i + 1) * 51);  // Gradual fade effect
+      brightness = constrain(brightness, 0, 255);
+      analogWrite(ledPins[i], brightness);
+    }
+
+    delay(200);
+  }
+
+  lastButtonState = currentButtonState;
+}
