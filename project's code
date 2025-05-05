@@ -1,0 +1,73 @@
+/*
+  ------------------------------------------------------------------------------
+  © 2025 Javier Siliacay | USTP - All Rights Reserved.
+
+  This source code is the intellectual property of the author and is provided 
+  for educational and non-commercial use only. Unauthorized copying, modification, 
+  distribution, or use of this code for commercial purposes is strictly prohibited 
+  without prior written consent from the author.
+
+  Violation of these terms may result in legal action under applicable intellectual 
+  property laws.
+
+  For permissions, contact: siliacay.javier@ustp.edu.ph
+  ------------------------------------------------------------------------------
+*/
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const int buttonPin = 2;
+const int motorPin = 9;
+
+// PWM LED pins
+const int ledPins[5] = {3, 5, 6, 10, 11}; // Use PWM-capable pins only
+
+int gear = 0;
+bool lastButtonState = HIGH;
+
+void setup() {
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(motorPin, OUTPUT);
+  
+  for (int i = 0; i < 5; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Windmill Energy");
+}
+
+void loop() {
+  bool currentButtonState = digitalRead(buttonPin);
+
+  if (lastButtonState == HIGH && currentButtonState == LOW) {
+    gear++;
+    if (gear > 5) gear = 0;
+
+    int pwmValue = gear * 51;
+    analogWrite(motorPin, pwmValue);
+
+    lcd.setCursor(0, 1);
+    lcd.print("Gear: ");
+    lcd.print(gear + 1);
+    lcd.print(" PWM: ");
+    lcd.print(pwmValue);
+    lcd.print("   ");
+
+    // Distribute brightness across 5 LEDs
+    for (int i = 0; i < 5; i++) {
+      int brightness = map(pwmValue, 0, 255, 0, (i + 1) * 51);  // Gradual fade effect
+      brightness = constrain(brightness, 0, 255);
+      analogWrite(ledPins[i], brightness);
+    }
+
+    delay(200);
+  }
+
+  lastButtonState = currentButtonState;
+}
