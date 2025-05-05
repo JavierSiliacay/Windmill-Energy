@@ -1,0 +1,33 @@
+Begin by setting up the hardware components, which include the button, motor, PWM-capable LEDs, and the LCD display with I2C.
+
+Define the pin connections in the code:
+
+The button is connected to pin 2.
+
+The motor is connected to pin 9.
+
+The PWM-capable LEDs are connected to pins 3, 5, 6, 10, and 11.
+
+Initialize the LCD display with I2C address 0x27.
+
+In the setup() function, configure the pin modes for the button, motor, and LEDs.
+
+Initialize the LCD display and set the backlight. Display a startup message on the LCD.
+
+In the loop() function, continuously monitor the state of the push button.
+
+When the button is pressed, increment the gear value, cycling through gears 1 to 5.
+
+For each gear, calculate the corresponding PWM value (multiplying the gear number by 51 to get a range from 0 to 255).
+
+Write the PWM value to the motor pin using analogWrite(), controlling the motor speed.
+
+Update the LCD display with the current gear and PWM value.
+
+Gradually adjust the brightness of the 5 LEDs based on the current PWM value. The LED brightness increases as the PWM value rises.
+
+Loop back to check the button state again for the next press. The system will update the display and LED behavior accordingly.
+
+Repeat this process until the project is powered off or reset.
+
+This workflow outlines how the system functions, from button interaction to controlling the motor and LED display.
